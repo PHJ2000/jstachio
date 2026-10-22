@@ -347,12 +347,32 @@ abstract class TemplateCompiler extends AbstractTemplateCompiler {
 	}
 
 	private void _printCodeToWrite(String s) {
-		if (s.isEmpty())
-			return;
-		String code = CodeAppendable.stringLiteralConcat(s);
-		println();
-		print(context.renderUnescapedOutputCode(code));
-		println();
+		// A class-file string uses at most three modified UTF-8 bytes per UTF-16 code
+		// unit. Keep each constant below 65535 bytes, even after javac folds line joins.
+		for (int start = 0; start < s.length();) {
+			int end = start + Math.min(16384, s.length() - start);
+			if (end < s.length()) {
+				// Byte output encodes each chunk separately, so keep surrogate pairs
+				// intact.
+				if (Character.isHighSurrogate(s.charAt(end - 1))) {
+					end--;
+				}
+				// Tokenizer escapes (quotes, backslashes and line endings) must not be
+				// split.
+				int slashes = 0;
+				for (int i = end - 1; i >= start && s.charAt(i) == '\\'; i--) {
+					slashes++;
+				}
+				if (slashes % 2 != 0) {
+					end--;
+				}
+			}
+			String code = CodeAppendable.stringLiteralConcat(s.substring(start, end));
+			println();
+			print(context.renderUnescapedOutputCode(code));
+			println();
+			start = end;
+		}
 	}
 
 	/*
