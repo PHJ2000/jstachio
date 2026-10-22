@@ -349,7 +349,8 @@ abstract class TemplateCompiler extends AbstractTemplateCompiler {
 	private void _printCodeToWrite(String s) {
 		// A class-file string uses at most three modified UTF-8 bytes per UTF-16 code
 		// unit. Keep each constant below 65535 bytes, even after javac folds line joins.
-		for (int start = 0; start < s.length();) {
+		int start = 0;
+		while (start < s.length()) {
 			int end = start + Math.min(16384, s.length() - start);
 			if (end < s.length()) {
 				// Byte output encodes each chunk separately, so keep surrogate pairs
